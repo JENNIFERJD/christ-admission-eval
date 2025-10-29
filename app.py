@@ -105,7 +105,7 @@ Respond with ONLY this JSON (no extra text):
     
     try:
         # FIXED: Using correct model name
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-1.5-pro')
         response = model.generate_content(prompt)
         evaluation = json.loads(clean_json(response.text))
         weights = {'communication_skills': 0.25, 'subject_knowledge': 0.35, 'confidence': 0.15, 'clarity_of_thought': 0.25}
