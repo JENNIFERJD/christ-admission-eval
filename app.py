@@ -8,7 +8,7 @@ import streamlit as st
 import json
 import re
 from datetime import datetime
-import google.generativeai as genai
+
 
 # Check if google.generativeai is available
 try:
@@ -17,9 +17,6 @@ try:
 except ImportError:
     GEMINI_AVAILABLE = False
 
-for m in genai.list_models():
-    if 'generateContent' in m.supported_generation_methods:
-        st.write(m.name)
 
 
 # ==================== CONFIGURATION ====================
