@@ -1,7 +1,7 @@
 """
 Christ University - AI Admission Evaluation System
 FREE system using Google Gemini API
-FIXED: Updated to use correct model name
+AUTO-DETECTS available models
 """
 
 import streamlit as st
@@ -9,15 +9,12 @@ import json
 import re
 from datetime import datetime
 
-
 # Check if google.generativeai is available
 try:
     import google.generativeai as genai
     GEMINI_AVAILABLE = True
 except ImportError:
     GEMINI_AVAILABLE = False
-
-
 
 # ==================== CONFIGURATION ====================
 
@@ -34,6 +31,48 @@ try:
         genai.configure(api_key=GEMINI_API_KEY)
 except:
     GEMINI_API_KEY = None
+
+# ==================== FIND AVAILABLE MODEL ====================
+
+def get_available_model():
+    """Find the best available model"""
+    if not GEMINI_API_KEY or not GEMINI_AVAILABLE:
+        return None
+    
+    try:
+        # Try models in order of preference
+        preferred_models = [
+            'gemini-1.5-pro-latest',
+            'gemini-1.5-pro',
+            'gemini-pro',
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-flash',
+        ]
+        
+        # Get list of available models
+        available_models = []
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                available_models.append(m.name)
+        
+        # Find first preferred model that's available
+        for preferred in preferred_models:
+            for available in available_models:
+                if preferred in available:
+                    return available
+        
+        # If none of preferred found, return first available
+        if available_models:
+            return available_models[0]
+        
+        return None
+    except Exception as e:
+        st.error(f"Error detecting model: {str(e)}")
+        return None
+
+# Cache the model name
+if 'model_name' not in st.session_state and GEMINI_API_KEY:
+    st.session_state.model_name = get_available_model()
 
 # ==================== HELPER FUNCTIONS ====================
 
@@ -75,6 +114,11 @@ def evaluate_interview(transcript, questions=""):
     if not GEMINI_API_KEY:
         st.error("⚠️ API Key not configured")
         return None
+    
+    if not st.session_state.model_name:
+        st.error("⚠️ No compatible model found. Please check your API key.")
+        return None
+    
     if len(transcript.strip()) < 50:
         st.warning("⚠️ Transcript too short (minimum 50 characters)")
         return None
@@ -107,8 +151,8 @@ Respond with ONLY this JSON (no extra text):
 }}"""
     
     try:
-        # FIXED: Using correct model name
-        model = genai.GenerativeModel('models/gemini-1.5-pro')
+        # Use detected model
+        model = genai.GenerativeModel(st.session_state.model_name)
         response = model.generate_content(prompt)
         evaluation = json.loads(clean_json(response.text))
         weights = {'communication_skills': 0.25, 'subject_knowledge': 0.35, 'confidence': 0.15, 'clarity_of_thought': 0.25}
@@ -129,6 +173,11 @@ def evaluate_sop(sop_text, program="General"):
     if not GEMINI_API_KEY:
         st.error("⚠️ API Key not configured")
         return None
+    
+    if not st.session_state.model_name:
+        st.error("⚠️ No compatible model found. Please check your API key.")
+        return None
+    
     if len(sop_text.strip()) < 100:
         st.warning("⚠️ SOP too short (minimum 100 characters)")
         return None
@@ -160,8 +209,8 @@ Respond with ONLY this JSON (no extra text):
 }}"""
     
     try:
-        # FIXED: Using correct model name
-        model = genai.GenerativeModel('models/gemini-1.5-pro')
+        # Use detected model
+        model = genai.GenerativeModel(st.session_state.model_name)
         response = model.generate_content(prompt)
         evaluation = json.loads(clean_json(response.text))
         weights = {'content_quality': 0.35, 'writing_quality': 0.25, 'originality': 0.25, 'structure': 0.15}
@@ -200,6 +249,20 @@ def main():
     
     if not GEMINI_AVAILABLE:
         st.error("⚠️ google-generativeai not installed. Check requirements.txt")
+        st.stop()
+    
+    # Show detected model
+    if st.session_state.model_name:
+        st.success(f"✅ Using model: `{st.session_state.model_name}`")
+    else:
+        st.error("⚠️ Could not detect compatible model. Try creating a new API key.")
+        with st.expander("🔍 Show Available Models"):
+            try:
+                for m in genai.list_models():
+                    if 'generateContent' in m.supported_generation_methods:
+                        st.code(m.name)
+            except Exception as e:
+                st.error(f"Error listing models: {str(e)}")
         st.stop()
     
     # Tabs
@@ -385,13 +448,13 @@ My long-term goal is to contribute to the development of AI systems that can und
         st.header("ℹ️ About This System")
         st.markdown("""
         ### 🆓 Completely FREE Solution
-        - **Google Gemini Pro**: FREE API with generous limits
+        - **Google Gemini**: FREE API with generous limits
         - **Streamlit Cloud**: FREE hosting forever
         - **No credit card required**
         
         ### 📊 How It Works
         1. **Extract Metrics**: Word count, filler words, lexical diversity
-        2. **AI Analysis**: Gemini Pro analyzes quality and structure
+        2. **AI Analysis**: Gemini analyzes quality and structure
         3. **Weighted Scoring**: Different criteria have different weights
         4. **Actionable Feedback**: Specific strengths and improvements
         
@@ -410,7 +473,7 @@ My long-term goal is to contribute to the development of AI systems that can und
         - Structure (15%) - Organization, transitions, flow
         
         ### 🚀 Free Tier Limits
-        - **Gemini Pro**: 60 requests per minute
+        - **Gemini**: 60 requests per minute
         - **Daily**: Up to 1,500 requests
         - **Cost**: $0 forever
         
@@ -427,7 +490,7 @@ My long-term goal is to contribute to the development of AI systems that can und
         - Download reports for your records
         
         ### 📧 Technical Details
-        - **Model**: Google Gemini Pro
+        - **Model**: Auto-detected Gemini model
         - **Framework**: Streamlit
         - **Hosting**: Streamlit Cloud
         - **Code**: Open source on GitHub
@@ -435,15 +498,19 @@ My long-term goal is to contribute to the development of AI systems that can und
         ### 🆘 Troubleshooting
         - **Slow response?** First request takes 5-10 seconds
         - **Error parsing?** Click evaluate again
-        - **API error?** Check your API key in secrets
+        - **API error?** Try creating a new API key
         
         ---
         
         Built for **Christ University Admission System**  
-        Version 1.0 | FREE & Open Source
+        Version 1.1 | FREE & Open Source | Auto-detects Model
         """)
         
         st.info("💡 **Pro Tip**: For video transcription, use FREE Groq Whisper API or AssemblyAI free tier!")
+        
+        # Show current model
+        if st.session_state.model_name:
+            st.success(f"🤖 Currently using: **{st.session_state.model_name}**")
 
 if __name__ == "__main__":
     main()
