@@ -108,7 +108,7 @@ Respond with ONLY this JSON (no extra text):
     
     try:
         # FIXED: Using correct model name
-        model = genai.GenerativeModel('gemini-1.5-pro')
+        model = genai.GenerativeModel('models/gemini-1.5-pro')
         response = model.generate_content(prompt)
         evaluation = json.loads(clean_json(response.text))
         weights = {'communication_skills': 0.25, 'subject_knowledge': 0.35, 'confidence': 0.15, 'clarity_of_thought': 0.25}
@@ -161,7 +161,7 @@ Respond with ONLY this JSON (no extra text):
     
     try:
         # FIXED: Using correct model name
-        model = genai.GenerativeModel(' models/gemini-1.5-pro')
+        model = genai.GenerativeModel('models/gemini-1.5-pro')
         response = model.generate_content(prompt)
         evaluation = json.loads(clean_json(response.text))
         weights = {'content_quality': 0.35, 'writing_quality': 0.25, 'originality': 0.25, 'structure': 0.15}
