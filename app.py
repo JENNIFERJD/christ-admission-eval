@@ -161,7 +161,7 @@ Respond with ONLY this JSON (no extra text):
     
     try:
         # FIXED: Using correct model name
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         response = model.generate_content(prompt)
         evaluation = json.loads(clean_json(response.text))
         weights = {'content_quality': 0.35, 'writing_quality': 0.25, 'originality': 0.25, 'structure': 0.15}
